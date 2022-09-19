@@ -64,5 +64,3 @@ GSLTCTRL_TOKEN="0123456789ABCDEF0123456789ABCDEF" gsltctrl 730 "My cool CSGO ser
 ```
 
 with `--help` you can also get an overview of the available options.
-```
-
