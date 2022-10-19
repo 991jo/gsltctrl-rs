@@ -27,7 +27,9 @@ The return code is used as follows:
 |    6 | sending a request to the API was unsucessfull |
 |    7 | could not format a JSON message |
 
+# Download
 
+You can download the latest binary for your os under releases, or you can build it with the instructions below.
 
 # API used by GSLTCTRL-RS
 
@@ -44,7 +46,7 @@ To build it, simply run
 cargo build --release
 ```
 This will download the required dependencies automatically.
-The finished binary will be in `target/release/gsltctrl`.
+The finished binary will be in `target/release/gsltctrl` or on windows `target/release/gsltctrl.exe`.
 
 # Usage
 
