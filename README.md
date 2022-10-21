@@ -29,7 +29,11 @@ The return code is used as follows:
 
 # Download
 
-You can download the latest binary for your os under releases, or you can build it with the instructions below.
+You can: 
+
+* download the latest binary for your os under [releases](https://github.com/991jo/gsltctrl-rs/releases/latest)
+* build it with the instructions below
+* run it inside docker with [Lan2Play/docker-gsltctrl](https://github.com/Lan2Play/docker-gsltctrl)
 
 # API used by GSLTCTRL-RS
 
