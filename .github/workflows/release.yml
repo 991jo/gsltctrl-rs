@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [ aarch64-unknown-linux-gnu, armv7-unknown-linux-gnueabihf, i686-unknown-linux-gnu, powerpc64le-unknown-linux-gnu, x86_64-unknown-linux-gnu, s390x-unknown-linux-gnu, x86_64-pc-windows-gnu, i686-pc-windows-gnu, i686-unknown-linux-musl, mips-unknown-linux-gnu, mips64-unknown-linux-gnuabi64, mips64el-unknown-linux-gnuabi64, mipsel-unknown-linux-gnu, powerpc-unknown-linux-gnu, powerpc64-unknown-linux-gnu, arm-unknown-linux-gnueabi, x86_64-unknown-linux-musl ]
+        target: [ aarch64-unknown-linux-gnu, armv7-unknown-linux-gnueabihf, x86_64-unknown-linux-gnu, x86_64-pc-windows-gnu, arm-unknown-linux-gnueabi ]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -49,7 +49,7 @@ jobs:
 
       - name: show checksum
         shell: bash
-        run: md5sum gsltctrl-*
+        run: sha256sum gsltctrl-*
 
       - name: Publish
         uses: softprops/action-gh-release@v1
