@@ -1,0 +1,59 @@
+on:
+  release:
+    types: [published]
+
+name: Build and publish app release
+
+jobs:
+  build_and_publish:
+    name: Rust project
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [ aarch64-unknown-linux-gnu, armv7-unknown-linux-gnueabihf, x86_64-unknown-linux-gnu, x86_64-pc-windows-gnu, arm-unknown-linux-gnueabi ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: set release version
+        shell: bash
+        run: python3 -m pip install toml-cli && toml set --toml-path Cargo.toml package.version ${{ github.ref_name }}
+
+      - name: Install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+          target: ${{ matrix.target }}
+
+      - name: Build target
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target ${{ matrix.target }}
+
+      - name: Package linux
+        shell: bash
+        if: ${{ !contains(matrix.target, 'windows') }}
+        run: |
+          mv target/${{ matrix.target }}/release/gsltctrl gsltctrl-${{ matrix.target }}
+
+      - name: Package windows
+        shell: bash
+        if: ${{ contains(matrix.target, 'windows') }}
+        run: |
+          mv target/${{ matrix.target }}/release/gsltctrl.exe gsltctrl-${{ matrix.target }}.exe
+
+      - name: show checksum
+        shell: bash
+        run: sha256sum gsltctrl-*
+
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+            files: gsltctrl-*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
