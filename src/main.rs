@@ -138,7 +138,7 @@ impl GameServersService {
     /// Returns the login token.
     pub fn create_server(&self, appid: u32, memo: &str) -> String {
         let data = CreateAccountData {
-            appid: appid,
+            appid,
             memo: memo.to_string(),
         };
 
@@ -154,7 +154,7 @@ impl GameServersService {
     /// returns the body of the response.
     fn make_request(&self, url: &str, input_json: Option<&str>, method: Method) -> String {
         let mut path = self.baseurl.clone();
-        path.push_str(&url);
+        path.push_str(url);
 
         let mut query: Vec<(String, String)> = Vec::new();
         query.push(("key".to_string(), self.apitoken.clone()));
