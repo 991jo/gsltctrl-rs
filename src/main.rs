@@ -76,7 +76,7 @@ struct CreateAccountData {
 #[derive(Debug)]
 enum ParsingResult {
     Found(String),
-    NotFound(),
+    NotFound,
     Expired(String),
 }
 
@@ -194,7 +194,7 @@ fn handle_server(service: GameServersService, appid: u32, memo: &str) {
 
     let token = match result {
         ParsingResult::Found(token) => token,
-        ParsingResult::NotFound() => service.create_server(appid, memo),
+        ParsingResult::NotFound => service.create_server(appid, memo),
         ParsingResult::Expired(steamid) => {
             let steamid = match steamid.parse::<u64>() {
                 Ok(v) => v,
@@ -226,7 +226,7 @@ fn parse_server_list(service: &GameServersService, appid: u32, memo: &str) -> Pa
         }
     }
 
-    ParsingResult::NotFound()
+    ParsingResult::NotFound
 }
 
 fn format_json<T: Serialize>(data: T) -> String {
