@@ -5,14 +5,14 @@ use std::collections::HashMap;
 use std::env;
 mod cli;
 
-/// A Struct representing the API
+/// API representation
 #[derive(Debug)]
 struct GameServersService {
     apitoken: String,
     baseurl: String,
 }
 
-/// A Struct representing a single gameserver as returned by the API
+/// A single gameserver as returned by the API
 #[derive(Deserialize, Debug)]
 struct GameServer {
     steamid: String,
@@ -32,7 +32,7 @@ fn default_str_fun() -> String {
     "".to_owned()
 }
 
-/// The result of parsing the /GetAccountList/v1/ endpoint.
+/// The result of parsing the `/GetAccountList/v1/` endpoint.
 #[derive(Deserialize, Debug)]
 struct GetAccountListResponse {
     servers: Vec<GameServer>,
@@ -46,13 +46,13 @@ struct GetAccountListResponse {
     last_action_time: i64,
 }
 
-/// A wrapper for the responses of the Steam Web API.
+/// A wrapper for responses of the Steam Web API.
 #[derive(Deserialize, Debug)]
 struct ResponseWrapper<T> {
     response: T,
 }
 
-/// The result of parsing the /CreateAccount/v1/ endpoint.
+/// The result of parsing the `/CreateAccount/v1/` endpoint.
 #[derive(Deserialize, Debug)]
 struct CreateServerResponse {
     #[allow(dead_code)]
@@ -60,7 +60,7 @@ struct CreateServerResponse {
     login_token: String,
 }
 
-/// The result of parsing the /ResetServer/v1/ endpoint
+/// The result of parsing the `/ResetServer/v1/` endpoint.
 #[derive(Deserialize, Debug)]
 struct ResetServerResponse {
     login_token: String,
@@ -72,7 +72,7 @@ struct CreateAccountData {
     memo: String,
 }
 
-/// The result of parsing the /GetAccountList/v1/ endpoint.
+/// The result of parsing the `/GetAccountList/v1/` endpoint.
 #[derive(Debug)]
 enum ParsingResult {
     Found(String),
@@ -110,7 +110,7 @@ impl GameServersService {
         data.response.login_token
     }
 
-    /// creates a login token with the given `appid` and `memo`.
+    /// Creates a login token with the given `appid` and `memo`.
     /// This method assumes that such a server does not exist (yet).
     ///
     /// Returns the login token.
@@ -153,16 +153,17 @@ impl GameServersService {
 
         if !response.status().is_success() {
             eprintln!(
-                "Request unsucessfull. Error code: {:?}, response: {:?}",
+                "Request unsuccessful. Error code: {:?}, response: {:?}",
                 response.status(),
                 response.headers(),
             );
             std::process::exit(3)
         }
+
         match response.text() {
             Ok(v) => v,
             Err(e) => {
-                eprint!("failed to parse response text: {:?}", e);
+                eprintln!("Failed to parse response text: {:?}", e);
                 std::process::exit(5);
             }
         }
@@ -211,7 +212,7 @@ fn handle_server(service: GameServersService, appid: u32, memo: &str) {
     println!("{}", token);
 }
 
-/// uses the output of the GetAccountList endpoint to search for the
+/// Uses the output of the `GetAccountList` endpoint to search for the
 /// server given by `appid` and `memo`.
 fn parse_server_list(service: &GameServersService, appid: u32, memo: &str) -> ParsingResult {
     let servers = service.get_server_list().servers;
@@ -233,7 +234,7 @@ fn format_json<T: Serialize>(data: T) -> String {
     match serde_json::to_string(&data) {
         Ok(v) => v,
         Err(e) => {
-            eprintln!("Error while formatting json: {}", e);
+            eprintln!("Error while formatting JSON: {}", e);
             std::process::exit(7);
         }
     }
