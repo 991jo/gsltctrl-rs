@@ -1,40 +1,20 @@
-use clap::Parser;
+use crate::jsonutil::{format_json, parse_json};
 use reqwest::blocking::Client;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
+mod cli;
+mod jsonutil;
 
-#[derive(Parser, Debug)]
-#[command(author, version, long_about = None)]
-#[command(
-    long_about = "A tool to generate and renew Steam Game Server License Tokens (GSLT).
-
-This tool will print out a valid token for the given appid and memo.
-If a token already exists it returns that token.
-If it was expired it gets renewed beforehand.
-If no token for that appid and memo existed a new one is created.
-
-appid and memo are given as cli parameters.
-The web API key is read from the environment variable GSLTCTRL_TOKEN.
-This is done to prevent leaking the API key via the process listing."
-)]
-struct Args {
-    /// the appid for which to create a token
-    appid: u32,
-
-    /// the memo string. Hast to be unique per appid
-    memo: String,
-}
-
-/// A Struct representing the API
+/// API representation
 #[derive(Debug)]
 struct GameServersService {
     apitoken: String,
     baseurl: String,
 }
 
-/// A Struct representing a single gameserver as returned by the API
+/// A single gameserver as returned by the API
 #[derive(Deserialize, Debug)]
 struct GameServer {
     steamid: String,
@@ -54,7 +34,7 @@ fn default_str_fun() -> String {
     "".to_owned()
 }
 
-/// The result of parsing the /GetAccountList/v1/ endpoint.
+/// The result of parsing the `/GetAccountList/v1/` endpoint.
 #[derive(Deserialize, Debug)]
 struct GetAccountListResponse {
     servers: Vec<GameServer>,
@@ -68,13 +48,13 @@ struct GetAccountListResponse {
     last_action_time: i64,
 }
 
-/// A wrapper for the responses of the Steam Web API.
+/// A wrapper for responses of the Steam Web API.
 #[derive(Deserialize, Debug)]
 struct ResponseWrapper<T> {
     response: T,
 }
 
-/// The result of parsing the /CreateAccount/v1/ endpoint.
+/// The result of parsing the `/CreateAccount/v1/` endpoint.
 #[derive(Deserialize, Debug)]
 struct CreateServerResponse {
     #[allow(dead_code)]
@@ -82,7 +62,7 @@ struct CreateServerResponse {
     login_token: String,
 }
 
-/// The result of parsing the /ResetServer/v1/ endpoint
+/// The result of parsing the `/ResetServer/v1/` endpoint.
 #[derive(Deserialize, Debug)]
 struct ResetServerResponse {
     login_token: String,
@@ -94,11 +74,11 @@ struct CreateAccountData {
     memo: String,
 }
 
-/// The result of parsing the /GetAccountList/v1/ endpoint.
+/// The result of parsing the `/GetAccountList/v1/` endpoint.
 #[derive(Debug)]
 enum ParsingResult {
     Found(String),
-    NotFound(),
+    NotFound,
     Expired(String),
 }
 
@@ -113,48 +93,47 @@ impl GameServersService {
     pub fn get_server_list(&self) -> GetAccountListResponse {
         let body = self.make_request("/GetAccountList/v1", None, Method::GET);
 
-        let data: ResponseWrapper<GetAccountListResponse> = parse_json(&body);
+        let response_data: ResponseWrapper<GetAccountListResponse> = parse_json(&body);
 
-        data.response
+        response_data.response
     }
 
     /// Resets the login token for the server with `steamid`.
     /// The new login token is returned.
     pub fn reset_token(&self, steamid: u64) -> String {
-        let mut data = HashMap::new();
-        data.insert("steamid", steamid);
-        let json = format_json(data);
+        let request_data = HashMap::from([("steamid", steamid)]);
+        let json = format_json(request_data);
 
         let body = self.make_request("/ResetLoginToken/v1", Some(&json), Method::POST);
 
-        let data: ResponseWrapper<ResetServerResponse> = parse_json(&body);
+        let response_data: ResponseWrapper<ResetServerResponse> = parse_json(&body);
 
-        data.response.login_token
+        response_data.response.login_token
     }
 
-    /// creates a login token with the given `appid` and `memo`.
+    /// Creates a login token with the given `appid` and `memo`.
     /// This method assumes that such a server does not exist (yet).
     ///
     /// Returns the login token.
     pub fn create_server(&self, appid: u32, memo: &str) -> String {
-        let data = CreateAccountData {
-            appid: appid,
+        let request_data = CreateAccountData {
+            appid,
             memo: memo.to_string(),
         };
-
-        let json = format_json(data);
+        let json = format_json(request_data);
 
         let body = self.make_request("/CreateAccount/v1/", Some(&json), Method::POST);
 
-        let data: ResponseWrapper<CreateServerResponse> = parse_json(&body);
-        data.response.login_token
+        let response_data: ResponseWrapper<CreateServerResponse> = parse_json(&body);
+
+        response_data.response.login_token
     }
 
     /// Makes a request to the API, checks the return code for success and
     /// returns the body of the response.
     fn make_request(&self, url: &str, input_json: Option<&str>, method: Method) -> String {
         let mut path = self.baseurl.clone();
-        path.push_str(&url);
+        path.push_str(url);
 
         let mut query: Vec<(String, String)> = Vec::new();
         query.push(("key".to_string(), self.apitoken.clone()));
@@ -175,16 +154,17 @@ impl GameServersService {
 
         if !response.status().is_success() {
             eprintln!(
-                "Request unsucessfull. Error code: {:?}, response: {:?}",
+                "Request unsuccessful. Error code: {:?}, response: {:?}",
                 response.status(),
                 response.headers(),
             );
             std::process::exit(3)
         }
+
         match response.text() {
             Ok(v) => v,
             Err(e) => {
-                eprint!("failed to parse response text: {:?}", e);
+                eprintln!("Failed to parse response text: {:?}", e);
                 std::process::exit(5);
             }
         }
@@ -192,7 +172,7 @@ impl GameServersService {
 }
 
 fn main() {
-    let args = Args::parse();
+    let args = cli::parse_args();
     let apitoken = get_apitoken();
 
     let service = GameServersService::new(&apitoken);
@@ -212,11 +192,12 @@ fn get_apitoken() -> String {
 }
 
 fn handle_server(service: GameServersService, appid: u32, memo: &str) {
-    let result = parse_server_list(&service, appid, memo);
+    let servers = service.get_server_list().servers;
+    let result = parse_server_list(&servers, appid, memo);
 
     let token = match result {
         ParsingResult::Found(token) => token,
-        ParsingResult::NotFound() => service.create_server(appid, memo),
+        ParsingResult::NotFound => service.create_server(appid, memo),
         ParsingResult::Expired(steamid) => {
             let steamid = match steamid.parse::<u64>() {
                 Ok(v) => v,
@@ -233,43 +214,18 @@ fn handle_server(service: GameServersService, appid: u32, memo: &str) {
     println!("{}", token);
 }
 
-/// uses the output of the GetAccountList endpoint to search for the
+/// Uses the output of the `GetAccountList` endpoint to search for the
 /// server given by `appid` and `memo`.
-fn parse_server_list(service: &GameServersService, appid: u32, memo: &str) -> ParsingResult {
-    let servers = service.get_server_list().servers;
-
+fn parse_server_list(servers: &[GameServer], appid: u32, memo: &str) -> ParsingResult {
     for server in servers {
         if server.appid == appid && server.memo == memo {
             if server.is_expired {
-                return ParsingResult::Expired(server.steamid);
+                return ParsingResult::Expired(server.steamid.clone());
             } else {
-                return ParsingResult::Found(server.login_token);
+                return ParsingResult::Found(server.login_token.clone());
             }
         }
     }
 
-    ParsingResult::NotFound()
-}
-
-fn format_json<T: Serialize>(data: T) -> String {
-    match serde_json::to_string(&data) {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!("Error while formatting json: {}", e);
-            std::process::exit(7);
-        }
-    }
-}
-
-fn parse_json<'a, T: Deserialize<'a>>(input: &'a str) -> T {
-    match serde_json::from_str(input) {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!(
-                "Failed to parse string {:?} to structs with error {:?}",
-                input, e
-            );
-            std::process::exit(4)
-        }
-    }
+    ParsingResult::NotFound
 }
