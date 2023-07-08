@@ -93,23 +93,23 @@ impl GameServersService {
     pub fn get_server_list(&self) -> GetAccountListResponse {
         let body = self.make_request("/GetAccountList/v1", None, Method::GET);
 
-        let data: ResponseWrapper<GetAccountListResponse> = parse_json(&body);
+        let response_data: ResponseWrapper<GetAccountListResponse> = parse_json(&body);
 
-        data.response
+        response_data.response
     }
 
     /// Resets the login token for the server with `steamid`.
     /// The new login token is returned.
     pub fn reset_token(&self, steamid: u64) -> String {
-        let mut data = HashMap::new();
-        data.insert("steamid", steamid);
-        let json = format_json(data);
+        let mut request_data = HashMap::new();
+        request_data.insert("steamid", steamid);
+        let json = format_json(request_data);
 
         let body = self.make_request("/ResetLoginToken/v1", Some(&json), Method::POST);
 
-        let data: ResponseWrapper<ResetServerResponse> = parse_json(&body);
+        let response_data: ResponseWrapper<ResetServerResponse> = parse_json(&body);
 
-        data.response.login_token
+        response_data.response.login_token
     }
 
     /// Creates a login token with the given `appid` and `memo`.
@@ -117,17 +117,17 @@ impl GameServersService {
     ///
     /// Returns the login token.
     pub fn create_server(&self, appid: u32, memo: &str) -> String {
-        let data = CreateAccountData {
+        let request_data = CreateAccountData {
             appid,
             memo: memo.to_string(),
         };
-
-        let json = format_json(data);
+        let json = format_json(request_data);
 
         let body = self.make_request("/CreateAccount/v1/", Some(&json), Method::POST);
 
-        let data: ResponseWrapper<CreateServerResponse> = parse_json(&body);
-        data.response.login_token
+        let response_data: ResponseWrapper<CreateServerResponse> = parse_json(&body);
+
+        response_data.response.login_token
     }
 
     /// Makes a request to the API, checks the return code for success and
