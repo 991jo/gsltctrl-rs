@@ -193,7 +193,8 @@ fn get_apitoken() -> String {
 }
 
 fn handle_server(service: GameServersService, appid: u32, memo: &str) {
-    let result = parse_server_list(&service, appid, memo);
+    let servers = service.get_server_list().servers;
+    let result = parse_server_list(&servers, appid, memo);
 
     let token = match result {
         ParsingResult::Found(token) => token,
@@ -216,15 +217,13 @@ fn handle_server(service: GameServersService, appid: u32, memo: &str) {
 
 /// Uses the output of the `GetAccountList` endpoint to search for the
 /// server given by `appid` and `memo`.
-fn parse_server_list(service: &GameServersService, appid: u32, memo: &str) -> ParsingResult {
-    let servers = service.get_server_list().servers;
-
+fn parse_server_list(servers: &[GameServer], appid: u32, memo: &str) -> ParsingResult {
     for server in servers {
         if server.appid == appid && server.memo == memo {
             if server.is_expired {
-                return ParsingResult::Expired(server.steamid);
+                return ParsingResult::Expired(server.steamid.clone());
             } else {
-                return ParsingResult::Found(server.login_token);
+                return ParsingResult::Found(server.login_token.clone());
             }
         }
     }
