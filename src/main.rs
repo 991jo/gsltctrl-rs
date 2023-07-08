@@ -101,8 +101,7 @@ impl GameServersService {
     /// Resets the login token for the server with `steamid`.
     /// The new login token is returned.
     pub fn reset_token(&self, steamid: u64) -> String {
-        let mut request_data = HashMap::new();
-        request_data.insert("steamid", steamid);
+        let request_data = HashMap::from([("steamid", steamid)]);
         let json = format_json(request_data);
 
         let body = self.make_request("/ResetLoginToken/v1", Some(&json), Method::POST);
