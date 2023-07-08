@@ -6,8 +6,9 @@ use std::collections::HashMap;
 use std::env;
 
 #[derive(Parser, Debug)]
-#[command(author, version, long_about = None)]
 #[command(
+    author,
+    version,
     long_about = "A tool to generate and renew Steam Game Server License Tokens (GSLT).
 
 This tool will print out a valid token for the given appid and memo.
