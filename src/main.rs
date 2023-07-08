@@ -1,9 +1,11 @@
+use crate::jsonutil::{format_json, parse_json};
 use reqwest::blocking::Client;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
 mod cli;
+mod jsonutil;
 
 /// API representation
 #[derive(Debug)]
@@ -228,27 +230,4 @@ fn parse_server_list(service: &GameServersService, appid: u32, memo: &str) -> Pa
     }
 
     ParsingResult::NotFound
-}
-
-fn format_json<T: Serialize>(data: T) -> String {
-    match serde_json::to_string(&data) {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!("Error while formatting JSON: {}", e);
-            std::process::exit(7);
-        }
-    }
-}
-
-fn parse_json<'a, T: Deserialize<'a>>(input: &'a str) -> T {
-    match serde_json::from_str(input) {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!(
-                "Failed to parse string {:?} to structs with error {:?}",
-                input, e
-            );
-            std::process::exit(4)
-        }
-    }
 }
